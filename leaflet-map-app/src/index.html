@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaflet Map Navigation</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+<body>
+    <div id="search-container" class="search-container">
+        <input type="text" id="lat-input" placeholder="Latitude">
+        <input type="text" id="lon-input" placeholder="Longitude">
+        <button id="search-btn">Go</button>
+    </div>
+    <div id="map" class="map"></div>
+    <div id="coordinates" class="coordinates"></div>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
