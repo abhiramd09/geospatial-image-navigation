@@ -139,7 +139,7 @@ function updateTileBoxes() {
 const map = L.map('map', {
     maxBounds: BOUNDING_BOX,
     maxBoundsViscosity: 1.0, // Prevents panning outside bounds
-    minZoom: 10, // Prevents zooming out beyond level 10
+    minZoom: 13, // Prevents zooming out beyond level 13
     maxZoom: 19  // Maximum zoom level
 }).setView([17.481671724450763, 78.29818725585939], 11);
 
