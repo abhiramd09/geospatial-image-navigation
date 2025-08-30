@@ -1,11 +1,11 @@
 // Configuration
 const BOUNDING_BOX = [
-    [17.188026970861955, 78.20068359375001], // Southwest corner (lat, lon)
-    [17.616537468641294, 78.72459411621095]  // Northeast corner (lat, lon)
+    [17.3617798628895, 78.41079711914064], // Southwest corner (lat, lon)
+    [17.451611, 78.504916]  // Northeast corner (lat, lon)
 ];
 
 // Image path configuration - change this for different environments
-const CUSTOM_TILE_IMAGE_PATH = 'tile_z10_x735_y461.png';
+const CUSTOM_TILE_IMAGE_PATH = 'tile_symbol.png';
 
 // Function to check if coordinates are within the bounding box
 function isWithinBoundingBox(lat, lng) {
@@ -24,6 +24,14 @@ function tileToLatLng(x, y, z) {
     return { lat: lat, lng: lon };
 }
 
+// Function to convert lat/lng to tile coordinates
+function latLngToTile(lat, lng, z) {
+    const n = Math.pow(2, z);
+    const x = Math.floor((lng + 180) / 360 * n);
+    const y = Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * n);
+    return { x: x, y: y };
+}
+
 const map = L.map('map', {
     maxBounds: BOUNDING_BOX,
     maxBoundsViscosity: 1.0, // Prevents panning outside bounds
@@ -31,17 +39,20 @@ const map = L.map('map', {
     maxZoom: 19  // Maximum zoom level
 }).setView([17.481671724450763, 78.29818725585939], 11);
 
+// Custom tile layer that shows the image for tiles within bounding box
 const customTileLayer = L.TileLayer.extend({
     getTileUrl: function(coords) {
-        // Convert tile coordinates to lat/lng
+        // Convert tile coordinates to lat/lng for the tile corners
         const tileLatLng = tileToLatLng(coords.x, coords.y, coords.z);
         
-        // Check if the tile center is within the bounding box
+        // Check if any part of the tile is within the bounding box
+        // We'll check the tile center and approximate if it overlaps
         if (isWithinBoundingBox(tileLatLng.lat, tileLatLng.lng)) {
             // Return the path to your custom image
             return CUSTOM_TILE_IMAGE_PATH;
         }
-        // Otherwise, use OpenStreetMap tiles
+        
+        // Otherwise, return a transparent tile or use OpenStreetMap
         return `https://${this._getSubdomain(coords)}.tile.openstreetmap.org/${coords.z}/${coords.x}/${coords.y}.png`;
     },
     _getSubdomain: function(coords) {
@@ -83,7 +94,7 @@ document.getElementById('search-btn').addEventListener('click', function() {
 
     map.setView([lat, lon], map.getZoom());
     marker.setLatLng([lat, lon]);
-    document.getElementById('coordinates').textContent = `Coordinates: ${lat}, ${lon}`;
+    document.getElementById('coordinates').textContent = `Coordinates: ${lat}, ${lon} | Zoom: ${map.getZoom()}`;
 });
 
 map.on('click', function(e) {
@@ -94,7 +105,7 @@ map.on('click', function(e) {
     // Check if clicked coordinates are within bounding box
     const withinBounds = isWithinBoundingBox(lat, lng);
     const statusText = withinBounds ? ' (within bounds)' : ' (outside bounds)';
-    document.getElementById('coordinates').textContent = `Coordinates: ${lat}, ${lng}${statusText}`;
+    document.getElementById('coordinates').textContent = `Coordinates: ${lat}, ${lng} | Zoom: ${map.getZoom()}${statusText}`;
 });
 
 // Draw a rectangle to show the bounding box
