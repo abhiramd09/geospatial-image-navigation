@@ -1,7 +1,7 @@
 // Configuration
 const BOUNDING_BOX = [
-    [17.3617798628895, 78.41079711914064], // Southwest corner (lat, lon)
-    [17.451611, 78.504916]  // Northeast corner (lat, lon)
+    [17.39503644739134, 78.44787597656251], // Southwest corner (lat, lon)
+    [17.413108, 78.466698]  // Northeast corner (lat, lon)
 ];
 
 // Image path configuration - change this for different environments
@@ -139,7 +139,7 @@ function updateTileBoxes() {
 const map = L.map('map', {
     maxBounds: BOUNDING_BOX,
     maxBoundsViscosity: 1.0, // Prevents panning outside bounds
-    minZoom: 13, // Prevents zooming out beyond level 13
+    minZoom: 12, // Prevents zooming out beyond level 13
     maxZoom: 19  // Maximum zoom level
 }).setView([17.481671724450763, 78.29818725585939], 11);
 
@@ -147,10 +147,10 @@ const map = L.map('map', {
 const customTileLayer = L.TileLayer.extend({
     getTileUrl: function(coords) {
         // Check if any part of the tile intersects with the bounding box
-        if (tileIntersectsBoundingBox(coords.x, coords.y, coords.z)) {
-            // Return the path to your custom image
-            return CUSTOM_TILE_IMAGE_PATH;
-        }
+        // if (tileIntersectsBoundingBox(coords.x, coords.y, coords.z)) {
+        //     // Return the path to your custom image
+        //     return CUSTOM_TILE_IMAGE_PATH;
+        // }
         
         // Otherwise, return a transparent tile or use OpenStreetMap
         return `https://${this._getSubdomain(coords)}.tile.openstreetmap.org/${coords.z}/${coords.x}/${coords.y}.png`;
@@ -167,6 +167,49 @@ const tileLayer = new customTileLayer('', {
     attribution: '© OpenStreetMap'
 });
 tileLayer.addTo(map);
+
+// Split the defined BOUNDING_BOX into 500m x 500m boxes and overlay the image in each
+
+// Helper function to calculate the distance in degrees for 500 meters
+function metersToLatLngDelta(lat, meters) {
+    // 1 deg latitude ~= 111320 meters
+    const deltaLat = meters / 111320;
+    // 1 deg longitude ~= 111320 * cos(latitude) meters
+    const deltaLng = meters / (111320 * Math.cos(lat * Math.PI / 180));
+    return { deltaLat, deltaLng };
+}
+
+(function overlay500mTiles() {
+    const [sw, ne] = BOUNDING_BOX;
+    const minLat = sw[0];
+    const minLng = sw[1];
+    const maxLat = ne[0];
+    const maxLng = ne[1];
+
+    // Use the latitude at the bottom of the box for deltaLng calculation
+    const { deltaLat, deltaLng } = metersToLatLngDelta(minLat, 500);
+
+    for (let lat = minLat; lat < maxLat; lat += deltaLat) {
+        // Prevent overshooting the maxLat
+        const nextLat = Math.min(lat + deltaLat, maxLat);
+        for (let lng = minLng; lng < maxLng; lng += deltaLng) {
+            // Prevent overshooting the maxLng
+            const nextLng = Math.min(lng + deltaLng, maxLng);
+
+            // Each 500mx500m box
+            const smallBox = [
+                [lat, lng],
+                [nextLat, nextLng]
+            ];
+
+            L.imageOverlay(
+                CUSTOM_TILE_IMAGE_PATH,
+                smallBox,
+                { interactive: false }
+            ).addTo(map);
+        }
+    }
+})();
 
 const marker = L.marker([51.5, -0.09]).addTo(map);
 
