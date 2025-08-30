@@ -7,6 +7,9 @@ const BOUNDING_BOX = [
 // Image path configuration - change this for different environments
 const CUSTOM_TILE_IMAGE_PATH = 'tile_symbol.png';
 
+// Store tile rectangles for different zoom levels
+const tileRectangles = new Map();
+
 // Function to check if coordinates are within the bounding box
 function isWithinBoundingBox(lat, lng) {
     const [southWest, northEast] = BOUNDING_BOX;
@@ -14,6 +17,29 @@ function isWithinBoundingBox(lat, lng) {
     const [maxLat, maxLng] = northEast;
     
     return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
+}
+
+// Function to check if a tile intersects with the bounding box
+function tileIntersectsBoundingBox(tileX, tileY, tileZ) {
+    const tileBounds = getTileBounds(tileX, tileY, tileZ);
+    const [southWest, northEast] = BOUNDING_BOX;
+    
+    // Check if the tile bounds overlap with the bounding box
+    // Tile bounds: [south, west], [north, east]
+    // Bounding box: [minLat, minLng], [maxLat, maxLng]
+    
+    const tileSouth = tileBounds[0][0];
+    const tileWest = tileBounds[0][1];
+    const tileNorth = tileBounds[1][0];
+    const tileEast = tileBounds[1][1];
+    
+    const boxMinLat = southWest[0];
+    const boxMinLng = southWest[1];
+    const boxMaxLat = northEast[0];
+    const boxMaxLng = northEast[1];
+    
+    // Check for intersection: not (tile is completely outside the box)
+    return !(tileEast < boxMinLng || tileWest > boxMaxLng || tileNorth < boxMinLat || tileSouth > boxMaxLat);
 }
 
 // Function to convert tile coordinates (x, y, z) to latitude and longitude
@@ -32,6 +58,84 @@ function latLngToTile(lat, lng, z) {
     return { x: x, y: y };
 }
 
+// Function to get tile bounds (lat/lng coordinates of tile corners)
+function getTileBounds(x, y, z) {
+    const n = Math.pow(2, z);
+    const west = x / n * 360 - 180;
+    const east = (x + 1) / n * 360 - 180;
+    const north = Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * 180 / Math.PI;
+    const south = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + 1) / n))) * 180 / Math.PI;
+    
+    return [
+        [south, west],  // Southwest corner
+        [north, east]   // Northeast corner
+    ];
+}
+
+// Function to get all tiles within bounding box for a given zoom level
+function getTilesInBoundingBox(zoomLevel) {
+    const [southWest, northEast] = BOUNDING_BOX;
+    const [minLat, minLng] = southWest;
+    const [maxLat, maxLng] = northEast;
+    
+    const minTile = latLngToTile(minLat, minLng, zoomLevel);
+    const maxTile = latLngToTile(maxLat, maxLng, zoomLevel);
+    
+    const tiles = [];
+    for (let x = minTile.x; x <= maxTile.x; x++) {
+        for (let y = maxTile.y; y <= minTile.y; y++) {
+            tiles.push({ x, y, z: zoomLevel });
+        }
+    }
+    return tiles;
+}
+
+// Function to draw tile boxes for a specific zoom level
+function drawTileBoxes(zoomLevel) {
+    // Remove existing rectangles for this zoom level
+    if (tileRectangles.has(zoomLevel)) {
+        tileRectangles.get(zoomLevel).forEach(rect => map.removeLayer(rect));
+        tileRectangles.delete(zoomLevel);
+    }
+    
+    const tiles = getTilesInBoundingBox(zoomLevel);
+    const rectangles = [];
+    
+    tiles.forEach(tile => {
+        const bounds = getTileBounds(tile.x, tile.y, tile.z);
+        const rectangle = L.rectangle(bounds, {
+            color: '#0066cc',
+            weight: 1,
+            fillOpacity: 0,
+            fillColor: '#0066cc'
+        }).addTo(map);
+        
+        // Add tooltip with tile coordinates
+        rectangle.bindTooltip(`Tile: ${tile.x}, ${tile.y}, ${tile.z}`, {
+            permanent: false,
+            direction: 'center'
+        });
+        
+        rectangles.push(rectangle);
+    });
+    
+    tileRectangles.set(zoomLevel, rectangles);
+}
+
+// Function to update tile boxes for current zoom level
+function updateTileBoxes() {
+    const currentZoom = map.getZoom();
+    
+    // Clear all existing tile boxes
+    tileRectangles.forEach((rectangles, zoomLevel) => {
+        rectangles.forEach(rect => map.removeLayer(rect));
+    });
+    tileRectangles.clear();
+    
+    // Draw tile boxes for current zoom level
+    drawTileBoxes(currentZoom);
+}
+
 const map = L.map('map', {
     maxBounds: BOUNDING_BOX,
     maxBoundsViscosity: 1.0, // Prevents panning outside bounds
@@ -42,12 +146,8 @@ const map = L.map('map', {
 // Custom tile layer that shows the image for tiles within bounding box
 const customTileLayer = L.TileLayer.extend({
     getTileUrl: function(coords) {
-        // Convert tile coordinates to lat/lng for the tile corners
-        const tileLatLng = tileToLatLng(coords.x, coords.y, coords.z);
-        
-        // Check if any part of the tile is within the bounding box
-        // We'll check the tile center and approximate if it overlaps
-        if (isWithinBoundingBox(tileLatLng.lat, tileLatLng.lng)) {
+        // Check if any part of the tile intersects with the bounding box
+        if (tileIntersectsBoundingBox(coords.x, coords.y, coords.z)) {
             // Return the path to your custom image
             return CUSTOM_TILE_IMAGE_PATH;
         }
@@ -117,7 +217,18 @@ const boundsRectangle = L.rectangle(BOUNDING_BOX, {
 }).addTo(map);
 
 // Add a tooltip to the bounding box
-boundsRectangle.bindTooltip("Aera of Interest", {
+boundsRectangle.bindTooltip("Area of Interest", {
     permanent: false,
     direction: 'center'
 });
+
+// Add zoom change event listener to automatically update tile boxes
+map.on('zoomend', function() {
+    updateTileBoxes();
+});
+
+// Add initial tile boxes for the starting zoom level
+setTimeout(function() {
+    updateTileBoxes();
+}, 100);
+
