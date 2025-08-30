@@ -1,4 +1,4 @@
-// Configuration
+// Configuration of 2x2 km region
 const BOUNDING_BOX = [
     [17.39503644739134, 78.44787597656251], // Southwest corner (lat, lon)
     [17.413108, 78.466698]  // Northeast corner (lat, lon)
