@@ -1,49 +1,124 @@
-# Leaflet Map Navigation App
+# Geospatial Image Navigation
 
-This project is a simple web application that utilizes Leaflet.js to provide map navigation functionality. Users can interact with the map, and the application will display the coordinates of their clicks.
+A modular, scalable geospatial web application for map navigation using Leaflet.js with a focus on clean architecture and maintainability.
 
-## Project Structure
+## 🏗️ Architecture
+
+The application follows a modular architecture pattern with clear separation of concerns:
 
 ```
-leaflet-map-app
-├── src
-│   ├── index.html       # Main HTML document
-│   ├── app.js           # JavaScript for map functionality
-│   └── styles.css       # CSS styles for the application
-├── package.json         # npm configuration file
-└── README.md            # Project documentation
+src/
+├── config/
+│   └── constants.js          # Configuration constants
+├── utils/
+│   └── coordinateUtils.js    # Coordinate and tile calculations
+├── services/
+│   ├── MapService.js         # Map initialization and management
+│   ├── TileService.js        # Tile operations and state
+│   └── GridService.js        # Grid overlay management
+├── controllers/
+│   └── UIController.js       # UI interactions and DOM manipulation
+├── app.js                    # Main application orchestrator
+└── index.html               # Entry point
 ```
 
-## Getting Started
+## 🚀 Features
 
-To get started with this project, follow these steps:
+- **Modular Architecture**: Clean separation of concerns with services and controllers
+- **ES6 Modules**: Modern JavaScript with import/export syntax
+- **Configuration Management**: Centralized configuration in constants
+- **Service Layer**: Reusable services for different functionalities
+- **Event-Driven**: Clean event handling between components
+- **Scalable**: Easy to extend with new features
 
-1. **Clone the repository:**
-   ```
-   git clone <repository-url>
-   cd leaflet-map-app
-   ```
+## 📦 Installation
 
-2. **Install dependencies:**
-   Make sure you have Node.js installed. Then run:
-   ```
+1. Clone the repository
+2. Install dependencies:
+   ```bash
    npm install
    ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-3. **Open the application:**
-   You can open `src/index.html` in your web browser to view the application.
+## 🏛️ Architecture Benefits
 
-## Features
+### 1. **Separation of Concerns**
+- **Config**: All constants and configuration in one place
+- **Utils**: Pure functions for calculations
+- **Services**: Business logic and state management
+- **Controllers**: UI interactions and DOM manipulation
 
-- Interactive map using Leaflet.js
-- Displays coordinates of user clicks on the map
-- Responsive design for various screen sizes
+### 2. **Scalability**
+- Easy to add new features by creating new services
+- Modular structure allows independent development
+- Clear interfaces between components
 
-## Usage
+### 3. **Maintainability**
+- Each module has a single responsibility
+- Easy to test individual components
+- Clear dependencies and imports
 
-- Click anywhere on the map to see the coordinates displayed on the screen.
-- Use the map controls to zoom in and out, and to navigate around the map.
+### 4. **Reusability**
+- Services can be reused across different parts of the application
+- Utility functions are pure and testable
+- Configuration can be easily modified
 
-## License
+## 🔧 Adding New Features
 
-This project is licensed under the MIT License. See the LICENSE file for more details.
+### Adding a New Service
+1. Create a new service file in `src/services/`
+2. Export a class with clear methods
+3. Import and initialize in `app.js`
+
+### Adding New Configuration
+1. Add constants to `src/config/constants.js`
+2. Import where needed
+
+### Adding New Utilities
+1. Create functions in `src/utils/` or create a new utility file
+2. Export functions and import where needed
+
+## 🧪 Testing Strategy
+
+The modular structure makes testing easy:
+
+```javascript
+// Example test for coordinateUtils
+import { isWithinBoundingBox } from './utils/coordinateUtils.js';
+
+describe('isWithinBoundingBox', () => {
+    it('should return true for coordinates within bounds', () => {
+        expect(isWithinBoundingBox(17.4, 78.45)).toBe(true);
+    });
+});
+```
+
+## 📈 Future Enhancements
+
+- **State Management**: Add a state management solution for complex state
+- **API Layer**: Create service classes for external API calls
+- **Error Handling**: Centralized error handling service
+- **Logging**: Add logging service for debugging
+- **Performance**: Add performance monitoring and optimization
+- **Testing**: Add comprehensive test suite
+- **Build System**: Add Webpack or Vite for bundling
+
+## 🛠️ Development
+
+### Available Scripts
+- `npm run dev` - Start development server
+- `npm run build` - Build for production (placeholder)
+- `npm run test` - Run tests (placeholder)
+
+### Code Style
+- Use ES6+ features
+- Follow single responsibility principle
+- Add JSDoc comments for public methods
+- Use meaningful variable and function names
+
+## 📝 License
+
+ISC

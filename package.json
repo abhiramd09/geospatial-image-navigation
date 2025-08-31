@@ -1,14 +1,28 @@
 {
-  "name": "leaflet-map-app",
+  "name": "geospatial-image-navigation",
   "version": "1.0.0",
-  "description": "A simple web application for map navigation using Leaflet.js",
+  "description": "A modular geospatial web application for map navigation using Leaflet.js",
   "main": "src/app.js",
+  "type": "module",
   "scripts": {
-    "start": "live-server src"
+    "start": "live-server src",
+    "dev": "live-server src --port=3000",
+    "build": "echo 'Add your build process here'",
+    "test": "echo 'Add your test process here'"
   },
   "dependencies": {
     "leaflet": "^1.7.1"
   },
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  },
+  "keywords": [
+    "geospatial",
+    "leaflet",
+    "maps",
+    "navigation",
+    "tiles"
+  ],
   "author": "",
   "license": "ISC"
 }
