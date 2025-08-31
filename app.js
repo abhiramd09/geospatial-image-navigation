@@ -1,11 +1,8 @@
-// Configuration of 2x2 km region
+// Configuration of 10km x 10km region
 const BOUNDING_BOX = [
-    [17.39503644739134, 78.44787597656251], // Southwest corner (lat, lon)
-    [17.413108, 78.466698]  // Northeast corner (lat, lon)
+    [17.23844856388169, 78.50606918334962], // Southwest corner (lat, lon)
+    [17.283357793826653, 78.60012352466585]  // Northeast corner (lat, lon)
 ];
-
-// Image path configuration - change this for different environments
-const CUSTOM_TILE_IMAGE_PATH = 'tile_symbol.png';
 
 // Store tile rectangles for different zoom levels
 const tileRectangles = new Map();
@@ -137,11 +134,11 @@ function updateTileBoxes() {
 }
 
 const map = L.map('map', {
-    maxBounds: BOUNDING_BOX,
+    // maxBounds: BOUNDING_BOX,
     maxBoundsViscosity: 1.0, // Prevents panning outside bounds
     minZoom: 12, // Prevents zooming out beyond level 13
     maxZoom: 19  // Maximum zoom level
-}).setView([17.481671724450763, 78.29818725585939], 11);
+}).setView([17.261973932302734, 78.55224609375001], 11);
 
 // Custom tile layer that shows the image for tiles within bounding box
 const customTileLayer = L.TileLayer.extend({
@@ -168,9 +165,7 @@ const tileLayer = new customTileLayer('', {
 });
 tileLayer.addTo(map);
 
-// Split the defined BOUNDING_BOX into 500m x 500m boxes and overlay the image in each
-
-// Helper function to calculate the distance in degrees for 500 meters
+// Helper function to calculate the distance in degrees for a given distance in meters
 function metersToLatLngDelta(lat, meters) {
     // 1 deg latitude ~= 111320 meters
     const deltaLat = meters / 111320;
@@ -179,37 +174,74 @@ function metersToLatLngDelta(lat, meters) {
     return { deltaLat, deltaLng };
 }
 
-(function overlay500mTiles() {
+// Function to overlay semantic segmentation images in 10km x 10km grid
+function overlaySemanticSegmentationImages() {
     const [sw, ne] = BOUNDING_BOX;
     const minLat = sw[0];
     const minLng = sw[1];
     const maxLat = ne[0];
     const maxLng = ne[1];
 
-    // Use the latitude at the bottom of the box for deltaLng calculation
-    const { deltaLat, deltaLng } = metersToLatLngDelta(minLat, 500);
+    // Calculate the size of each tile (10km / 4 = 2.5km per tile)
+    // Since we have 8 tiles, we'll arrange them in a 4x2 grid
+    const tileSizeMeters = 2500; // 2.5km per tile
+    const { deltaLat, deltaLng } = metersToLatLngDelta(minLat, tileSizeMeters);
 
-    for (let lat = minLat; lat < maxLat; lat += deltaLat) {
-        // Prevent overshooting the maxLat
-        const nextLat = Math.min(lat + deltaLat, maxLat);
-        for (let lng = minLng; lng < maxLng; lng += deltaLng) {
-            // Prevent overshooting the maxLng
-            const nextLng = Math.min(lng + deltaLng, maxLng);
+    // Calculate the size of each image part within a tile (2.5km / 3 ≈ 833m per image part)
+    const imagePartSizeMeters = tileSizeMeters / 3;
+    const { deltaLat: imageDeltaLat, deltaLng: imageDeltaLng } = metersToLatLngDelta(minLat, imagePartSizeMeters);
 
-            // Each 500mx500m box
-            const smallBox = [
-                [lat, lng],
-                [nextLat, nextLng]
-            ];
+    // Define tile arrangement (4x2 grid for 8 tiles)
+    const tileArrangement = [
+        [1, 2, 3, 4],
+        [5, 6, 7, 8]
+    ];
 
-            L.imageOverlay(
-                CUSTOM_TILE_IMAGE_PATH,
-                smallBox,
-                { interactive: false }
-            ).addTo(map);
-        }
-    }
-})();
+    // Overlay images for each tile
+    tileArrangement.forEach((row, rowIndex) => {
+        row.forEach((tileNumber, colIndex) => {
+            const tileStartLat = minLat + (rowIndex * deltaLat);
+            const tileStartLng = minLng + (colIndex * deltaLng);
+
+            // Overlay the 9 image parts for this tile (reversed row order)
+            for (let imgRow = 0; imgRow < 3; imgRow++) {
+                for (let imgCol = 0; imgCol < 3; imgCol++) {
+                    // Reverse the row order: 2 -> 0, 1 -> 1, 0 -> 2
+                    const reversedRow = 2 - imgRow;
+                    const imagePartNumber = reversedRow * 3 + imgCol + 1;
+                    const imagePartNumberStr = imagePartNumber.toString().padStart(3, '0');
+                    
+                    const imageStartLat = tileStartLat + (imgRow * imageDeltaLat);
+                    const imageStartLng = tileStartLng + (imgCol * imageDeltaLng);
+                    const imageEndLat = imageStartLat + imageDeltaLat;
+                    const imageEndLng = imageStartLng + imageDeltaLng;
+
+                    const imageBounds = [
+                        [imageStartLat, imageStartLng],
+                        [imageEndLat, imageEndLng]
+                    ];
+
+                    const imagePath = `Semantic segmentation dataset/Tile ${tileNumber}/images/image_part_${imagePartNumberStr}.jpg`;
+                    
+                    L.imageOverlay(
+                        imagePath,
+                        imageBounds,
+                        { 
+                            interactive: true,
+                            opacity: 0.8
+                        }
+                    ).addTo(map).bindTooltip(
+                        `Tile ${tileNumber}, Image ${imagePartNumberStr}`,
+                        { permanent: false }
+                    );
+                }
+            }
+        });
+    });
+}
+
+// Call the function to overlay the semantic segmentation images
+overlaySemanticSegmentationImages();
 
 const marker = L.marker([51.5, -0.09]).addTo(map);
 
@@ -260,7 +292,7 @@ const boundsRectangle = L.rectangle(BOUNDING_BOX, {
 }).addTo(map);
 
 // Add a tooltip to the bounding box
-boundsRectangle.bindTooltip("Area of Interest", {
+boundsRectangle.bindTooltip("10km x 10km Area of Interest", {
     permanent: false,
     direction: 'center'
 });
